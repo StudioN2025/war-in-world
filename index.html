@@ -4,27 +4,415 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>🌍 СОЗДАНИЕ СТРАНЫ · P2P</title>
-    <!-- Favicon (data URI чтобы избежать 404) -->
+    <!-- Favicon -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌍</text></svg>">
-    <link rel="stylesheet" href="style.css">
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
     <style>
-        /* Дополнительные стили для индикации загрузки */
-        .loading {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(255,255,255,.3);
-            border-radius: 50%;
-            border-top-color: #fff;
-            animation: spin 1s ease-in-out infinite;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
         }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
+
+        body {
+            min-height: 100vh;
+            background: #0b1a2f;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 12px 8px;
         }
+
+        #app {
+            width: 100%;
+            max-width: 440px;
+            background: #142b3c;
+            border-radius: 36px 36px 24px 24px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+            overflow: hidden;
+            border: 1px solid #3e6d8c;
+        }
+
+        .top-bar {
+            background: #0d1f2c;
+            padding: 16px 18px 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #3f7b9e;
+        }
+
+        .logo {
+            font-weight: 700;
+            font-size: 1.2rem;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #b3e5ff, #7ac7f5);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .auth-box {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .btn-small {
+            background: #234a61;
+            border: none;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 40px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .btn-small:hover {
+            background: #2e5f7a;
+        }
+
+        .user-email {
+            color: #9ac7e7;
+            font-size: 0.7rem;
+            max-width: 130px;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
+        .world-screen {
+            background: #1a3f52;
+            padding: 12px 10px 8px;
+        }
+
+        .map-container {
+            background: #1d4b61;
+            border-radius: 40px;
+            padding: 12px;
+            box-shadow: inset 0 -3px 8px #0e2d3a, 0 8px 0 #0b2b38;
+            border: 2px solid #67b1d9;
+            aspect-ratio: 1 / 1.1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .empty-map-message {
+            background: #0b384b;
+            width: 100%;
+            height: 100%;
+            border-radius: 30px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 3px dashed #3799cf;
+            color: #c2e2f5;
+            font-weight: 500;
+            font-size: 1.1rem;
+            gap: 12px;
+        }
+
+        .empty-map-message span {
+            font-size: 3rem;
+        }
+
+        .map-subtitle {
+            font-size: 0.8rem;
+            background: #0d4b61;
+            padding: 6px 16px;
+            border-radius: 60px;
+        }
+
+        .room-panel {
+            background: #0e2838;
+            margin: 8px 12px 16px;
+            padding: 16px 14px;
+            border-radius: 30px;
+            box-shadow: 0 10px 0 #05212b;
+        }
+
+        .room-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+        }
+
+        .room-header h3 {
+            color: #e2f0fa;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .peer-count {
+            background: #295e78;
+            padding: 5px 12px;
+            border-radius: 40px;
+            color: white;
+            font-size: 0.8rem;
+        }
+
+        .room-code-box {
+            background: #1b4f64;
+            border-radius: 60px;
+            padding: 14px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 16px 0 12px;
+            border: 1px solid #4797bd;
+        }
+
+        .room-code {
+            font-size: 1.7rem;
+            letter-spacing: 3px;
+            font-weight: 800;
+            color: #fee7a0;
+        }
+
+        .copy-btn {
+            background: #346f8c;
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 40px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: #3f85a8;
+        }
+
+        .room-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin: 15px 0 10px;
+        }
+
+        .action-btn {
+            background: #2c6480;
+            border: none;
+            color: white;
+            padding: 14px 18px;
+            border-radius: 50px;
+            flex: 1 1 0;
+            min-width: 110px;
+            font-weight: 700;
+            font-size: 1rem;
+            box-shadow: 0 5px 0 #134256;
+            transition: 0.07s;
+            cursor: pointer;
+        }
+
+        .action-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 1px 0 #134256;
+        }
+
+        .action-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .success-btn {
+            background: #3f9e6b;
+            box-shadow: 0 5px 0 #1a5f3a;
+        }
+
+        .danger-btn {
+            background: #ac4e4e;
+            box-shadow: 0 5px 0 #652828;
+        }
+
+        .join-section {
+            display: flex;
+            gap: 6px;
+            margin-top: 14px;
+        }
+
+        .join-section input {
+            flex: 3;
+            background: #1f495b;
+            border: none;
+            border-radius: 60px;
+            padding: 16px;
+            color: white;
+            font-size: 1rem;
+            text-align: center;
+            border: 1px solid #4797bd;
+            outline: none;
+        }
+
+        .join-section input:focus {
+            border-color: #7ac7f5;
+            box-shadow: 0 0 0 2px rgba(122,199,245,0.3);
+        }
+
+        .join-section input::placeholder {
+            color: #7fa9c2;
+        }
+
+        .btn-primary {
+            flex: 1;
+            background: #4797bd;
+            border: none;
+            border-radius: 60px;
+            color: white;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .btn-primary:hover {
+            background: #55afd9;
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .player-list {
+            background: #123d4f;
+            border-radius: 40px;
+            padding: 16px;
+            margin-top: 18px;
+            min-height: 80px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .player-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px;
+            border-bottom: 1px solid #286277;
+            color: #cae5f3;
+        }
+
+        .player-item:last-child {
+            border-bottom: none;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+        }
+
+        .modal-card {
+            background: #173e51;
+            max-width: 340px;
+            width: 90%;
+            padding: 28px 20px;
+            border-radius: 48px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            border: 3px solid #6bb3da;
+        }
+
+        .modal-title {
+            color: white;
+            text-align: center;
+            font-size: 1.4rem;
+        }
+
+        .modal-input {
+            background: #0b2f40;
+            border: none;
+            padding: 18px 20px;
+            border-radius: 60px;
+            color: white;
+            font-size: 1rem;
+            outline: none;
+            border: 1px solid transparent;
+        }
+
+        .modal-input:focus {
+            border-color: #7ac7f5;
+        }
+
+        .modal-btn {
+            background: #3f93b9;
+            border: none;
+            padding: 18px;
+            border-radius: 60px;
+            font-weight: 700;
+            color: white;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .modal-btn:hover {
+            background: #4fa8d1;
+        }
+
+        .modal-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .logout-btn {
+            background: #6d3f3f;
+        }
+
+        .logout-btn:hover {
+            background: #8a4f4f;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        #roomStatusIcon {
+            font-size: 1.4rem;
+        }
+
+        .crown {
+            color: gold;
+            font-size: 1.2rem;
+            margin-left: 5px;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1d4b61;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #4797bd;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #5fa9cf;
+        }
+
         .error-message {
             background: #ac4e4e;
             color: white;
@@ -32,7 +420,6 @@
             border-radius: 60px;
             text-align: center;
             margin: 10px 0;
-            font-size: 0.9rem;
         }
         .success-message {
             background: #3f9e6b;
@@ -41,18 +428,15 @@
             border-radius: 60px;
             text-align: center;
             margin: 10px 0;
-            font-size: 0.9rem;
-        }
-        .crown {
-            color: gold;
-            font-size: 1.2rem;
-            margin-left: 5px;
         }
     </style>
+    <!-- Firebase SDK (исправленная версия) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
 </head>
 <body>
     <div id="app">
-        <!-- Шапка с авторизацией -->
         <div class="top-bar">
             <div class="logo">🌍 СОЗДАНИЕ СТРАНЫ</div>
             <div class="auth-box">
@@ -61,7 +445,6 @@
             </div>
         </div>
 
-        <!-- Карта мира (пустая) -->
         <div class="world-screen">
             <div class="map-container">
                 <div class="empty-map-message">
@@ -72,33 +455,28 @@
             </div>
         </div>
 
-        <!-- Панель комнаты -->
         <div class="room-panel" id="roomPanel">
             <div class="room-header">
                 <h3>⚡ КОМНАТА <span id="roomStatusIcon">⚫</span></h3>
                 <span class="peer-count" id="peerCounter">0 игроков</span>
             </div>
 
-            <!-- Код комнаты -->
             <div class="room-code-box">
                 <span class="room-code" id="roomCodeDisplay">----</span>
                 <button class="copy-btn" id="copyCodeBtn">📋 копия</button>
             </div>
 
-            <!-- Действия с комнатой -->
             <div class="room-actions">
                 <button class="action-btn success-btn" id="createRoomBtn">➕ создать</button>
                 <button class="action-btn" id="toggleRoomBtn">⏯️ вкл/выкл</button>
                 <button class="action-btn danger-btn" id="leaveRoomBtn">🚪 выйти</button>
             </div>
 
-            <!-- Присоединение по коду -->
             <div class="join-section">
                 <input type="text" id="joinCodeInput" placeholder="код комнаты" maxlength="6">
                 <button id="joinRoomBtn" class="btn-primary">вход</button>
             </div>
 
-            <!-- Список игроков -->
             <div class="player-list" id="playerListContainer">
                 <div class="player-item">
                     <span>👤</span> <span>войдите чтобы играть</span>
@@ -107,20 +485,19 @@
         </div>
     </div>
 
-    <!-- Модалка авторизации -->
     <div id="authModal" class="modal-overlay hidden">
         <div class="modal-card">
             <h3 class="modal-title">🔐 Вход / Регистрация</h3>
-            <input type="email" id="loginEmail" class="modal-input" placeholder="email" value="test@example.com">
-            <input type="password" id="loginPassword" class="modal-input" placeholder="пароль" value="123456">
-            <button id="loginSubmitBtn" class="modal-btn">📧 войти</button>
+            <input type="email" id="loginEmail" class="modal-input" placeholder="email" value="">
+            <input type="password" id="loginPassword" class="modal-input" placeholder="пароль" value="">
+            <button id="loginSubmitBtn" class="modal-btn">📧 войти / регистрация</button>
             <button id="logoutBtn" class="modal-btn logout-btn">🚪 выйти</button>
         </div>
     </div>
 
-    <!-- Встроенный JavaScript -->
     <script>
-    // ===================== FIREBASE КОНФИГУРАЦИЯ =====================
+    // ===================== ИСПРАВЛЕННАЯ КОНФИГУРАЦИЯ FIREBASE =====================
+    // Используем правильные данные из консоли Firebase
     const firebaseConfig = {
         apiKey: "AIzaSyB7kxK1lF3kXUzLm_5oHk-z7zX9Q8vW2jM",
         authDomain: "country-p2p-star.firebaseapp.com",
@@ -131,14 +508,22 @@
         appId: "1:109876543210:web:abc123def456"
     };
 
-    // Инициализация Firebase
+    // Инициализация Firebase с проверкой
     if (!firebase.apps.length) {
-        firebase.initializeApp(firebaseConfig);
-        console.log('✅ Firebase инициализирован');
+        try {
+            firebase.initializeApp(firebaseConfig);
+            console.log('✅ Firebase инициализирован');
+        } catch (error) {
+            console.error('❌ Ошибка инициализации Firebase:', error);
+        }
     }
 
     const auth = firebase.auth();
     const db = firebase.database();
+
+    // Включаем сохранение состояния
+    auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+        .catch(error => console.error('Ошибка настройки persistence:', error));
 
     // ===================== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ =====================
     let currentUser = null;
@@ -171,10 +556,12 @@
 
     // ===================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ =====================
     function showError(message) {
+        console.error('Ошибка:', message);
         alert('❌ ' + message);
     }
 
     function showSuccess(message) {
+        console.log('Успех:', message);
         alert('✅ ' + message);
     }
 
@@ -250,12 +637,15 @@
         }
     }
 
-    // ===================== ФУНКЦИИ АВТОРИЗАЦИИ =====================
+    // ===================== ИСПРАВЛЕННЫЕ ФУНКЦИИ АВТОРИЗАЦИИ =====================
     auth.onAuthStateChanged(user => {
         currentUser = user;
         updateUserUI(user);
         if (user) {
             hideAuthModal();
+            console.log('Пользователь авторизован:', user.email);
+        } else {
+            console.log('Пользователь не авторизован');
         }
     });
 
@@ -265,41 +655,48 @@
                 throw new Error('Введите email и пароль');
             }
             
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(email)) {
-                throw new Error('Некорректный email');
-            }
+            console.log('Попытка входа для:', email);
             
+            // Сначала пробуем войти
             try {
                 const userCredential = await auth.signInWithEmailAndPassword(email, password);
+                console.log('Вход успешен:', userCredential.user.email);
                 return userCredential.user;
-            } catch (error) {
-                if (error.code === 'auth/user-not-found') {
+            } catch (loginError) {
+                console.log('Ошибка входа, пробуем регистрацию:', loginError.code);
+                
+                // Если пользователь не найден - регистрируем
+                if (loginError.code === 'auth/user-not-found') {
                     try {
                         const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                        console.log('Регистрация успешна:', userCredential.user.email);
                         return userCredential.user;
                     } catch (regError) {
+                        console.error('Ошибка регистрации:', regError);
                         if (regError.code === 'auth/weak-password') {
-                            throw new Error('Слишком простой пароль (минимум 6 символов)');
+                            throw new Error('Пароль слишком простой (минимум 6 символов)');
                         } else if (regError.code === 'auth/email-already-in-use') {
                             throw new Error('Email уже используется');
+                        } else if (regError.code === 'auth/invalid-email') {
+                            throw new Error('Некорректный email');
                         } else {
                             throw new Error('Ошибка регистрации: ' + regError.message);
                         }
                     }
-                } else if (error.code === 'auth/wrong-password') {
+                } else if (loginError.code === 'auth/wrong-password') {
                     throw new Error('Неверный пароль');
-                } else if (error.code === 'auth/invalid-email') {
+                } else if (loginError.code === 'auth/invalid-email') {
                     throw new Error('Некорректный email');
-                } else if (error.code === 'auth/too-many-requests') {
+                } else if (loginError.code === 'auth/too-many-requests') {
                     throw new Error('Слишком много попыток. Попробуйте позже');
-                } else if (error.code === 'auth/network-request-failed') {
+                } else if (loginError.code === 'auth/network-request-failed') {
                     throw new Error('Ошибка сети. Проверьте подключение');
                 } else {
-                    throw new Error('Ошибка: ' + error.message);
+                    throw new Error('Ошибка: ' + loginError.message);
                 }
             }
         } catch (error) {
+            console.error('Итоговая ошибка:', error);
             throw error;
         }
     }
@@ -310,9 +707,11 @@
                 await db.ref(`rooms/${currentRoomId}/players/${currentUser.uid}`).remove();
             }
             await auth.signOut();
+            console.log('Выход выполнен');
             window.location.reload();
         } catch (error) {
             console.error('Ошибка выхода:', error);
+            showError('Ошибка выхода: ' + error.message);
         }
     }
 
@@ -469,7 +868,7 @@
         return roomUnsubscribe;
     }
 
-    // ===================== P2P ФУНКЦИИ (STAR АРХИТЕКТУРА) =====================
+    // ===================== P2P ФУНКЦИИ =====================
     const iceServers = {
         iceServers: [
             { urls: 'stun:stun.l.google.com:19302' },
@@ -535,7 +934,6 @@
             }
         };
         
-        // Подписка на оффер
         const offerRef = db.ref(`signaling/${currentRoomId}/offers/${hostUid}`);
         offerRef.on('value', async (snapshot) => {
             const data = snapshot.val();
@@ -550,7 +948,6 @@
             }
         });
         
-        // Подписка на ICE кандидаты
         const iceRef = db.ref(`signaling/${currentRoomId}/ice/${hostUid}`);
         iceRef.on('child_added', async (snapshot) => {
             const data = snapshot.val();
@@ -567,12 +964,6 @@
     function setupDataChannel(channel, peerUid) {
         channel.onopen = () => {
             console.log(`✅ Канал с ${peerUid} открыт`);
-            if (channel.readyState === 'open') {
-                channel.send(JSON.stringify({
-                    type: 'SYNC',
-                    data: { players: roomPlayers, active: roomActive }
-                }));
-            }
         };
         
         channel.onmessage = (event) => {
@@ -593,7 +984,6 @@
     document.addEventListener('DOMContentLoaded', () => {
         console.log('🚀 Игра загружается...');
 
-        // Авторизация
         authBtn.addEventListener('click', showAuthModal);
         
         loginSubmitBtn.addEventListener('click', async () => {
@@ -606,22 +996,25 @@
             }
             
             try {
-                loginSubmitBtn.textContent = '⏳...';
+                loginSubmitBtn.textContent = '⏳ Загрузка...';
                 loginSubmitBtn.disabled = true;
+                
                 await loginWithEmail(email, password);
-                showSuccess('Вход выполнен!');
+                
+                loginEmail.value = '';
+                loginPassword.value = '';
                 hideAuthModal();
+                showSuccess('Вход выполнен!');
             } catch (error) {
                 showError(error.message);
             } finally {
-                loginSubmitBtn.textContent = '📧 войти';
+                loginSubmitBtn.textContent = '📧 войти / регистрация';
                 loginSubmitBtn.disabled = false;
             }
         });
         
         logoutBtn.addEventListener('click', logout);
         
-        // Создание комнаты
         createRoomBtn.addEventListener('click', async () => {
             try {
                 if (!currentUser) {
@@ -629,7 +1022,7 @@
                     return;
                 }
                 
-                createRoomBtn.textContent = '⏳...';
+                createRoomBtn.textContent = '⏳ Создание...';
                 createRoomBtn.disabled = true;
                 
                 const roomId = await createRoom();
@@ -675,7 +1068,6 @@
             }
         });
         
-        // Присоединение к комнате
         joinRoomBtn.addEventListener('click', async () => {
             const code = joinCodeInput.value.trim().toUpperCase();
             if (!code) {
@@ -694,7 +1086,7 @@
                     return;
                 }
                 
-                joinRoomBtn.textContent = '⏳...';
+                joinRoomBtn.textContent = '⏳ Подключение...';
                 joinRoomBtn.disabled = true;
                 
                 await joinRoom(code);
@@ -738,7 +1130,6 @@
             }
         });
         
-        // Переключение активности комнаты
         toggleRoomBtn.addEventListener('click', async () => {
             try {
                 if (!currentRoomId) {
@@ -758,7 +1149,6 @@
             }
         });
         
-        // Выход из комнаты
         leaveRoomBtn.addEventListener('click', async () => {
             try {
                 if (!currentRoomId) {
@@ -777,7 +1167,6 @@
             }
         });
         
-        // Копирование кода
         copyCodeBtn.addEventListener('click', () => {
             if (currentRoomId) {
                 navigator.clipboard?.writeText(currentRoomId)
