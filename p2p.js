@@ -1,7 +1,4 @@
 // ===================== P2P СОЕДИНЕНИЯ (STAR АРХИТЕКТУРА) =====================
-let peerConnections = new Map();
-let dataChannels = new Map();
-
 const iceServers = {
     iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
@@ -10,9 +7,9 @@ const iceServers = {
 };
 
 function closeAllConnections() {
-    peerConnections.forEach(pc => pc.close());
-    peerConnections.clear();
-    dataChannels.clear();
+    window.peerConnections.forEach(pc => pc.close());
+    window.peerConnections.clear();
+    window.dataChannels.clear();
     console.log('🔌 Все P2P соединения закрыты');
 }
 
@@ -21,21 +18,21 @@ async function initAsHost(peerUids) {
     console.log('🎮 Инициализация как хост, пиры:', peerUids);
     
     for (const peerUid of peerUids) {
-        if (peerUid === currentUser?.uid) continue;
+        if (peerUid === window.currentUser?.uid) continue;
         
         try {
             const pc = new RTCPeerConnection(iceServers);
-            peerConnections.set(peerUid, pc);
+            window.peerConnections.set(peerUid, pc);
             
             const channel = pc.createDataChannel('gameChannel');
             setupDataChannel(channel, peerUid);
-            dataChannels.set(peerUid, channel);
+            window.dataChannels.set(peerUid, channel);
             
             pc.onicecandidate = (event) => {
                 if (event.candidate) {
-                    db.ref(`signaling/${currentRoomId}/ice/${peerUid}`).push({
+                    db.ref(`signaling/${window.currentRoomId}/ice/${peerUid}`).push({
                         candidate: event.candidate,
-                        from: currentUser.uid
+                        from: window.currentUser.uid
                     });
                 }
             };
@@ -43,9 +40,9 @@ async function initAsHost(peerUids) {
             const offer = await pc.createOffer();
             await pc.setLocalDescription(offer);
             
-            await db.ref(`signaling/${currentRoomId}/offers/${peerUid}`).set({
+            await db.ref(`signaling/${window.currentRoomId}/offers/${peerUid}`).set({
                 offer: offer,
-                from: currentUser.uid
+                from: window.currentUser.uid
             });
             
             console.log(`📡 Оффер отправлен пиру ${peerUid}`);
@@ -61,44 +58,44 @@ async function initAsClient(hostUid) {
     
     try {
         const pc = new RTCPeerConnection(iceServers);
-        peerConnections.set(hostUid, pc);
+        window.peerConnections.set(hostUid, pc);
         
         pc.ondatachannel = (event) => {
             console.log('📡 Получен канал от хоста');
             setupDataChannel(event.channel, hostUid);
-            dataChannels.set(hostUid, event.channel);
+            window.dataChannels.set(hostUid, event.channel);
         };
         
         pc.onicecandidate = (event) => {
             if (event.candidate) {
-                db.ref(`signaling/${currentRoomId}/ice/${hostUid}`).push({
+                db.ref(`signaling/${window.currentRoomId}/ice/${hostUid}`).push({
                     candidate: event.candidate,
-                    from: currentUser.uid
+                    from: window.currentUser.uid
                 });
             }
         };
         
         // Подписка на оффер от хоста
-        const offerRef = db.ref(`signaling/${currentRoomId}/offers/${hostUid}`);
+        const offerRef = db.ref(`signaling/${window.currentRoomId}/offers/${hostUid}`);
         offerRef.on('value', async (snapshot) => {
             const data = snapshot.val();
-            if (data && data.from !== currentUser?.uid) {
+            if (data && data.from !== window.currentUser?.uid) {
                 console.log('📨 Получен оффер от хоста');
                 await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
                 const answer = await pc.createAnswer();
                 await pc.setLocalDescription(answer);
-                await db.ref(`signaling/${currentRoomId}/answers/${currentUser.uid}`).set({
+                await db.ref(`signaling/${window.currentRoomId}/answers/${window.currentUser.uid}`).set({
                     answer: answer,
-                    from: currentUser.uid
+                    from: window.currentUser.uid
                 });
             }
         });
         
         // Подписка на ICE кандидаты
-        const iceRef = db.ref(`signaling/${currentRoomId}/ice/${hostUid}`);
+        const iceRef = db.ref(`signaling/${window.currentRoomId}/ice/${hostUid}`);
         iceRef.on('child_added', async (snapshot) => {
             const data = snapshot.val();
-            if (data && data.from !== currentUser?.uid) {
+            if (data && data.from !== window.currentUser?.uid) {
                 try {
                     await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
                 } catch (e) {
@@ -117,7 +114,7 @@ function setupDataChannel(channel, peerUid) {
         // Отправляем приветственное сообщение
         channel.send(JSON.stringify({
             type: 'HELLO',
-            from: currentUser?.email,
+            from: window.currentUser?.email,
             time: Date.now()
         }));
     };
@@ -133,12 +130,14 @@ function setupDataChannel(channel, peerUid) {
                     break;
                     
                 case 'CHAT':
-                    showSuccess(`💬 ${message.from}: ${message.text}`);
+                    if (typeof showSuccess === 'function') {
+                        showSuccess(`💬 ${message.from}: ${message.text}`);
+                    }
                     break;
                     
                 case 'GAME_STATE':
                     // Синхронизация игрового состояния от хоста
-                    if (!isHost) {
+                    if (!window.isHost && typeof game !== 'undefined' && game.syncGameStateFromHost) {
                         game.syncGameStateFromHost(message);
                     }
                     break;
@@ -149,14 +148,14 @@ function setupDataChannel(channel, peerUid) {
                     break;
                     
                 case 'START_GAME':
-                    if (!isHost) {
+                    if (!window.isHost && typeof game !== 'undefined' && game.startGameLoop) {
                         console.log('🎮 Хост запустил игру');
                         game.startGameLoop();
                     }
                     break;
                     
                 case 'STOP_GAME':
-                    if (!isHost) {
+                    if (!window.isHost && typeof game !== 'undefined' && game.stopGameLoop) {
                         console.log('⏸️ Хост остановил игру');
                         game.stopGameLoop();
                     }
@@ -180,11 +179,11 @@ function setupDataChannel(channel, peerUid) {
 function handlePlayerAction(peerUid, action) {
     console.log('🎮 Действие от игрока:', action);
     
-    if (action.type === 'CAPTURE') {
+    if (action.type === 'CAPTURE' && typeof game !== 'undefined' && game.captureProvince) {
         const result = game.captureProvince(peerUid, action.provinceId);
         
         // Отправляем результат обратно
-        const channel = dataChannels.get(peerUid);
+        const channel = window.dataChannels.get(peerUid);
         if (channel?.readyState === 'open') {
             channel.send(JSON.stringify({
                 type: 'ACTION_RESULT',
@@ -195,7 +194,7 @@ function handlePlayerAction(peerUid, action) {
         }
         
         // Рассылаем обновленное состояние всем
-        if (isHost) {
+        if (window.isHost && typeof game.broadcastGameState === 'function') {
             game.broadcastGameState();
         }
     }
@@ -203,17 +202,19 @@ function handlePlayerAction(peerUid, action) {
 
 // Отправка действия на хост
 function sendPlayerAction(action) {
-    if (!isHost && dataChannels.size > 0) {
+    if (!window.isHost && window.dataChannels.size > 0) {
         // Отправляем действие хосту
-        const hostChannel = Array.from(dataChannels.values())[0];
+        const hostChannel = Array.from(window.dataChannels.values())[0];
         if (hostChannel?.readyState === 'open') {
             hostChannel.send(JSON.stringify({
                 type: 'PLAYER_ACTION',
                 action: action
             }));
         }
-    } else if (isHost) {
+    } else if (window.isHost) {
         // Если мы хост, обрабатываем локально
-        handlePlayerAction(currentUser.uid, action);
+        handlePlayerAction(window.currentUser.uid, action);
     }
 }
+
+console.log('✅ p2p.js загружен');
