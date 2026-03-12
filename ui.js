@@ -21,31 +21,54 @@ const playerListContainer = document.getElementById('playerListContainer');
 function updateUserUI(user) {
     if (user) {
         userEmailSpan.textContent = user.email;
+        userEmailSpan.style.color = '#9ac7e7';
     } else {
         userEmailSpan.textContent = 'не авторизован';
+        userEmailSpan.style.color = '#ff9999';
     }
 }
 
 // Показать/скрыть модалку
 function showAuthModal() {
-    authModal?.classList.remove('hidden');
+    if (authModal) {
+        authModal.classList.remove('hidden');
+        // Автозаполнение тестовыми данными
+        if (!loginEmail.value) {
+            loginEmail.value = 'test@example.com';
+        }
+        if (!loginPassword.value) {
+            loginPassword.value = '123456';
+        }
+    }
 }
 
 function hideAuthModal() {
-    authModal?.classList.add('hidden');
+    if (authModal) {
+        authModal.classList.add('hidden');
+    }
+}
+
+// Функция для показа ошибок
+function showError(message) {
+    alert('❌ ' + message);
+}
+
+// Функция для показа успеха
+function showSuccess(message) {
+    alert('✅ ' + message);
 }
 
 // Обновление интерфейса комнаты
 function updateRoomUI(roomData) {
-    if (!roomData) {
+    if (!roomData || !roomData.players) {
         roomCodeDisplay.textContent = '----';
         peerCounter.textContent = '0 игроков';
         roomStatusIcon.textContent = '⚫';
-        playerListContainer.innerHTML = '<div class="player-item">👤 ожидание...</div>';
+        playerListContainer.innerHTML = '<div class="player-item">👤 нет комнаты</div>';
         return;
     }
     
-    const { players, active, isHost: userIsHost } = roomData;
+    const { players, active, isHost: userIsHost, hostUid } = roomData;
     
     roomCodeDisplay.textContent = currentRoomId || '----';
     peerCounter.textContent = `${players.length} игроков`;
@@ -59,7 +82,7 @@ function updateRoomUI(roomData) {
         return;
     }
     
-    // Сортируем: текущий игрок первый, затем по времени (упрощенно)
+    // Сортируем: текущий игрок первый
     const sortedPlayers = [...players].sort((a, b) => {
         if (a.uid === currentUser?.uid) return -1;
         if (b.uid === currentUser?.uid) return 1;
@@ -71,11 +94,12 @@ function updateRoomUI(roomData) {
         div.className = 'player-item';
         
         const isMe = player.uid === currentUser?.uid;
-        const isHostPlayer = player.uid === roomData.hostUid;
+        const isHostPlayer = player.uid === hostUid;
         
         div.innerHTML = `
             <span>${isMe ? '⭐' : '👤'}</span>
-            <span>${player.email} ${isMe ? '(вы)' : ''} ${isHostPlayer ? '👑' : ''}</span>
+            <span style="flex:1">${player.email || 'Без email'} ${isMe ? '(вы)' : ''}</span>
+            ${isHostPlayer ? '<span class="crown">👑</span>' : ''}
         `;
         
         playerListContainer.appendChild(div);
@@ -84,12 +108,19 @@ function updateRoomUI(roomData) {
     // Обновление кнопки переключения для хоста
     if (userIsHost) {
         toggleRoomBtn.style.background = active ? '#ac9f3f' : '#3f9e6b';
+        toggleRoomBtn.style.boxShadow = active ? '0 5px 0 #6b4f1a' : '0 5px 0 #1a5f3a';
     }
 }
 
 // Копирование кода
 copyCodeBtn.addEventListener('click', () => {
     if (currentRoomId) {
-        navigator.clipboard?.writeText(currentRoomId);
+        navigator.clipboard?.writeText(currentRoomId)
+            .then(() => {
+                showSuccess('Код скопирован!');
+            })
+            .catch(() => {
+                alert('Код: ' + currentRoomId);
+            });
     }
 });
