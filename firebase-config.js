@@ -21,6 +21,7 @@ if (!firebase.apps.length) {
     }
 }
 
+// Глобальные объекты Firebase
 const auth = firebase.auth();
 const db = firebase.database();
 
@@ -28,3 +29,16 @@ const db = firebase.database();
 auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
     .then(() => console.log('✅ Persistence настроен'))
     .catch(error => console.error('❌ Ошибка persistence:', error));
+
+// Глобальные переменные игры (объявляем один раз)
+window.currentUser = null;
+window.currentRoomId = null;
+window.isHost = false;
+window.roomActive = false;
+window.roomPlayers = [];
+window.peerConnections = new Map();
+window.dataChannels = new Map();
+window.gameState = null;
+window.gameLoopInterval = null;
+
+console.log('✅ firebase-config.js загружен');
