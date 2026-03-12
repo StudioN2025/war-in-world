@@ -1,8 +1,23 @@
-// Главный файл инициализации
+// ===================== ГЛАВНЫЙ ФАЙЛ =====================
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🚀 Игра загружается...');
     setupEventListeners();
+    testConnection();
 });
+
+// Тест подключения к Firebase
+function testConnection() {
+    setTimeout(() => {
+        const connectedRef = db.ref('.info/connected');
+        connectedRef.on('value', (snap) => {
+            if (snap.val() === true) {
+                console.log('✅ Подключение к базе данных установлено');
+            } else {
+                console.log('❌ Нет подключения к базе данных');
+            }
+        });
+    }, 2000);
+}
 
 // Настройка обработчиков событий
 function setupEventListeners() {
@@ -19,28 +34,24 @@ function setupEventListeners() {
         }
         
         try {
-            // Показываем индикатор загрузки
-            loginSubmitBtn.textContent = '⏳ Загрузка...';
+            loginSubmitBtn.textContent = '⏳...';
             loginSubmitBtn.disabled = true;
             
             await loginWithEmail(email, password);
-            showSuccess('Вход выполнен!');
+            
+            loginEmail.value = '';
+            loginPassword.value = '';
             hideAuthModal();
+            showSuccess('Вход выполнен!');
         } catch (error) {
             showError(error.message);
         } finally {
-            loginSubmitBtn.textContent = '📧 войти';
+            loginSubmitBtn.textContent = '📧 войти / регистрация';
             loginSubmitBtn.disabled = false;
         }
     });
     
-    logoutBtn.addEventListener('click', async () => {
-        try {
-            await logout();
-        } catch (error) {
-            showError('Ошибка выхода: ' + error.message);
-        }
-    });
+    logoutBtn.addEventListener('click', logout);
     
     // Создание комнаты
     createRoomBtn.addEventListener('click', async () => {
@@ -50,22 +61,17 @@ function setupEventListeners() {
                 return;
             }
             
-            createRoomBtn.textContent = '⏳ Создание...';
+            createRoomBtn.textContent = '⏳...';
             createRoomBtn.disabled = true;
             
             const roomId = await createRoom();
             currentRoomId = roomId;
             
-            console.log('✅ Комната создана:', roomId);
-            showSuccess('Комната создана! Код: ' + roomId);
-            
-            // Подписка на обновления
             subscribeToRoom(roomId, {
                 onUpdate: (data) => {
                     roomPlayers = data.players;
                     updateRoomUI(data);
                     
-                    // Инициализация P2P
                     if (data.isHost) {
                         const peerUids = data.players.map(p => p.uid).filter(uid => uid !== currentUser?.uid);
                         if (peerUids.length > 0) {
@@ -79,20 +85,20 @@ function setupEventListeners() {
                     }
                 },
                 onRoomDeleted: () => {
-                    console.log('ℹ️ Комната удалена');
                     currentRoomId = null;
                     isHost = false;
                     updateRoomUI(null);
                     closeAllConnections();
                 },
                 onPlayerRemoved: () => {
-                    console.log('ℹ️ Вы удалены из комнаты');
                     currentRoomId = null;
                     isHost = false;
                     updateRoomUI(null);
                     closeAllConnections();
                 }
             });
+            
+            showSuccess('Комната создана! Код: ' + roomId);
         } catch (error) {
             showError(error.message);
         } finally {
@@ -126,9 +132,6 @@ function setupEventListeners() {
             await joinRoom(code);
             currentRoomId = code;
             
-            console.log('✅ Присоединились к комнате:', code);
-            showSuccess('Присоединение выполнено!');
-            
             subscribeToRoom(code, {
                 onUpdate: (data) => {
                     roomPlayers = data.players;
@@ -147,18 +150,18 @@ function setupEventListeners() {
                     }
                 },
                 onRoomDeleted: () => {
-                    console.log('ℹ️ Комната удалена');
                     currentRoomId = null;
                     updateRoomUI(null);
                     closeAllConnections();
                 },
                 onPlayerRemoved: () => {
-                    console.log('ℹ️ Вы удалены из комнаты');
                     currentRoomId = null;
                     updateRoomUI(null);
                     closeAllConnections();
                 }
             });
+            
+            showSuccess('Присоединение выполнено!');
         } catch (error) {
             showError(error.message);
         } finally {
@@ -205,19 +208,22 @@ function setupEventListeners() {
             showError('Ошибка при выходе: ' + error.message);
         }
     });
+    
+    // Копирование кода
+    copyCodeBtn.addEventListener('click', () => {
+        if (currentRoomId) {
+            navigator.clipboard?.writeText(currentRoomId)
+                .then(() => showSuccess('Код скопирован!'))
+                .catch(() => alert('Код: ' + currentRoomId));
+        }
+    });
 }
 
-// Периодический пинг для отслеживания активности
+// Пинг для отслеживания активности
 setInterval(() => {
     if (currentUser && currentRoomId) {
         db.ref(`rooms/${currentRoomId}/players/${currentUser.uid}/ping`)
             .set(Date.now())
-            .catch(err => console.log('Пинг не удался:', err));
+            .catch(() => {});
     }
 }, 15000);
-
-// Favicon fix - добавляем в head index.html
-const faviconFix = document.createElement('link');
-faviconFix.rel = 'icon';
-faviconFix.href = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🌍</text></svg>';
-document.head.appendChild(faviconFix);
