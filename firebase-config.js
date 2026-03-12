@@ -1,40 +1,35 @@
+// ===================== КОНФИГУРАЦИЯ FIREBASE =====================
+// ВАЖНО: Замените эти данные на свои из консоли Firebase
 const firebaseConfig = {
-  apiKey: "AIzaSyD7QFLrEYgrVBHnBYmC5KFX_AcVjGiUcHQ",
-  authDomain: "war-in-worls-2026.firebaseapp.com",
-  databaseURL: "https://war-in-worls-2026-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "war-in-worls-2026",
-  storageBucket: "war-in-worls-2026.firebasestorage.app",
-  messagingSenderId: "1069752017417",
-  appId: "1:1069752017417:web:a5741722acd64da9ed8ed8"
+    apiKey: "AIzaSyB7kxK1lF3kXUzLm_5oHk-z7zX9Q8vW2jM",  // Ваш API ключ
+    authDomain: "country-p2p-star.firebaseapp.com",     // Ваш authDomain
+    databaseURL: "https://country-p2p-star-default-rtdb.firebaseio.com", // Ваш databaseURL
+    projectId: "country-p2p-star",                       // Ваш projectId
+    storageBucket: "country-p2p-star.appspot.com",       // Ваш storageBucket
+    messagingSenderId: "109876543210",                   // Ваш messagingSenderId
+    appId: "1:109876543210:web:abc123def456"            // Ваш appId
 };
 
-// Проверка конфигурации
-console.log('Firebase Config:', {
-    ...firebaseConfig,
-    apiKey: '***' // Скрываем ключ в логах
-});
-
-// Инициализация Firebase с проверкой
+// Инициализация Firebase
 if (!firebase.apps.length) {
     try {
         firebase.initializeApp(firebaseConfig);
         console.log('✅ Firebase инициализирован');
+        console.log('📁 Project:', firebaseConfig.projectId);
     } catch (error) {
         console.error('❌ Ошибка инициализации Firebase:', error);
+        alert('Ошибка подключения к Firebase. Проверьте конфигурацию.');
     }
 } else {
     firebase.app();
-    console.log('✅ Firebase уже инициализирован');
+    console.log('ℹ️ Firebase уже инициализирован');
 }
 
 // Глобальные ссылки
 const auth = firebase.auth();
 const db = firebase.database();
 
-// Настройка Auth для работы с email/паролем
-auth.useDeviceLanguage();
-
-// Экспорт
-window.firebaseApp = firebase;
-window.auth = auth;
-window.db = db;
+// Настройка persistence
+auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+    .then(() => console.log('✅ Persistence настроен'))
+    .catch(error => console.error('❌ Ошибка persistence:', error));
