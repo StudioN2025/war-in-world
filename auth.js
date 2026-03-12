@@ -1,89 +1,78 @@
-// Состояние авторизации
+// ===================== УПРАВЛЕНИЕ АВТОРИЗАЦИЕЙ =====================
 let currentUser = null;
-let authInitialized = false;
 
-// Наблюдатель за состоянием
+// Слушатель состояния аутентификации
 auth.onAuthStateChanged(user => {
     currentUser = user;
-    authInitialized = true;
-    updateUserUI(user);
-    
     if (user) {
         console.log('✅ Пользователь авторизован:', user.email);
+        updateUserUI(user);
         hideAuthModal();
     } else {
         console.log('ℹ️ Пользователь не авторизован');
-        // Не показываем модалку автоматически при загрузке
-        if (authInitialized) {
-            // Показываем только если прошла инициализация
-        }
+        updateUserUI(null);
     }
 });
 
-// Вход/регистрация
+// Функция входа/регистрации
 async function loginWithEmail(email, password) {
     try {
-        // Проверка на пустые поля
         if (!email || !password) {
             throw new Error('Введите email и пароль');
         }
         
-        // Валидация email
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-            throw new Error('Некорректный email');
+        if (password.length < 6) {
+            throw new Error('Пароль должен быть минимум 6 символов');
         }
         
-        console.log('Попытка входа для:', email);
+        console.log('🔑 Попытка входа для:', email);
         
+        // Пробуем войти
         try {
-            // Сначала пробуем войти
             const userCredential = await auth.signInWithEmailAndPassword(email, password);
-            console.log('✅ Успешный вход:', userCredential.user.email);
+            console.log('✅ Вход успешен');
             return userCredential.user;
-        } catch (error) {
-            console.log('Ошибка входа:', error.code);
+        } catch (loginError) {
+            console.log('❌ Ошибка входа:', loginError.code);
             
-            if (error.code === 'auth/user-not-found') {
-                // Пользователь не найден - регистрируем
+            // Если пользователь не найден - регистрируем
+            if (loginError.code === 'auth/user-not-found') {
                 try {
                     const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-                    console.log('✅ Успешная регистрация:', userCredential.user.email);
+                    console.log('✅ Регистрация успешна');
                     return userCredential.user;
                 } catch (regError) {
-                    console.error('Ошибка регистрации:', regError.code);
+                    console.error('❌ Ошибка регистрации:', regError.code);
                     
                     if (regError.code === 'auth/weak-password') {
                         throw new Error('Слишком простой пароль (минимум 6 символов)');
                     } else if (regError.code === 'auth/email-already-in-use') {
-                        throw new Error('Email уже используется');
-                    } else if (regError.code === 'auth/invalid-email') {
-                        throw new Error('Некорректный email');
+                        throw new Error('Этот email уже используется');
                     } else {
                         throw new Error('Ошибка регистрации: ' + regError.message);
                     }
                 }
-            } else if (error.code === 'auth/wrong-password') {
+            } else if (loginError.code === 'auth/wrong-password') {
                 throw new Error('Неверный пароль');
-            } else if (error.code === 'auth/invalid-email') {
+            } else if (loginError.code === 'auth/invalid-email') {
                 throw new Error('Некорректный email');
-            } else if (error.code === 'auth/too-many-requests') {
+            } else if (loginError.code === 'auth/too-many-requests') {
                 throw new Error('Слишком много попыток. Попробуйте позже');
-            } else if (error.code === 'auth/network-request-failed') {
+            } else if (loginError.code === 'auth/network-request-failed') {
                 throw new Error('Ошибка сети. Проверьте подключение');
             } else {
-                throw new Error('Ошибка: ' + error.message);
+                throw new Error('Ошибка: ' + loginError.message);
             }
         }
     } catch (error) {
+        console.error('❌ Ошибка авторизации:', error);
         throw error;
     }
 }
 
-// Выход
+// Выход из системы
 async function logout() {
     try {
-        // Очистка комнаты перед выходом
         if (currentRoomId && currentUser) {
             await db.ref(`rooms/${currentRoomId}/players/${currentUser.uid}`).remove();
         }
@@ -92,6 +81,7 @@ async function logout() {
         window.location.reload();
     } catch (error) {
         console.error('❌ Ошибка выхода:', error);
+        showError('Ошибка выхода: ' + error.message);
     }
 }
 
