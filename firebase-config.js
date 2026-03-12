@@ -1,15 +1,12 @@
-// ===================== КОНФИГУРАЦИЯ FIREBASE =====================
-// ВАЖНО: Замените эти данные на свои из консоли Firebase
 const firebaseConfig = {
-    apiKey: "AIzaSyB7kxK1lF3kXUzLm_5oHk-z7zX9Q8vW2jM",  // Ваш API ключ
-    authDomain: "country-p2p-star.firebaseapp.com",     // Ваш authDomain
-    databaseURL: "https://country-p2p-star-default-rtdb.firebaseio.com", // Ваш databaseURL
-    projectId: "country-p2p-star",                       // Ваш projectId
-    storageBucket: "country-p2p-star.appspot.com",       // Ваш storageBucket
-    messagingSenderId: "109876543210",                   // Ваш messagingSenderId
-    appId: "1:109876543210:web:abc123def456"            // Ваш appId
+  apiKey: "AIzaSyB3oYDFrmgIVmGuHZq53lGqaBPP5HFLNFY",
+  authDomain: "war-in-world-2026.firebaseapp.com",
+  databaseURL: "https://war-in-world-2026-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "war-in-world-2026",
+  storageBucket: "war-in-world-2026.firebasestorage.app",
+  messagingSenderId: "448448732377",
+  appId: "1:448448732377:web:dccc775863ff80096172c8"
 };
-
 // Инициализация Firebase
 if (!firebase.apps.length) {
     try {
