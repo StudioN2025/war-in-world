@@ -1,27 +1,53 @@
 // ===================== ГЛАВНЫЙ ФАЙЛ =====================
+
+// Глобальные переменные (объявлены в других файлах, но здесь используем)
+// currentUser, currentRoomId, isHost, roomActive, roomPlayers - из auth.js и room.js
+// closeAllConnections, initAsHost, initAsClient - из p2p.js
+
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🚀 Игра загружается...');
+    initializeApp();
     setupEventListeners();
     testConnection();
 });
 
+// Инициализация приложения
+function initializeApp() {
+    // Показываем приветственное сообщение
+    setTimeout(() => {
+        if (!currentUser) {
+            console.log('ℹ️ Для игры требуется авторизация');
+        }
+    }, 2000);
+}
+
 // Тест подключения к Firebase
 function testConnection() {
+    console.log('🔍 Проверка подключения...');
+    
+    // Проверка базы данных
+    const connectedRef = db.ref('.info/connected');
+    connectedRef.on('value', (snap) => {
+        if (snap.val() === true) {
+            console.log('✅ Подключение к базе данных установлено');
+            showSuccess('Подключение к серверу установлено');
+        } else {
+            console.log('❌ Нет подключения к базе данных');
+            showError('Нет подключения к серверу. Проверьте интернет');
+        }
+    });
+    
+    // Проверка аутентификации
     setTimeout(() => {
-        const connectedRef = db.ref('.info/connected');
-        connectedRef.on('value', (snap) => {
-            if (snap.val() === true) {
-                console.log('✅ Подключение к базе данных установлено');
-            } else {
-                console.log('❌ Нет подключения к базе данных');
-            }
-        });
-    }, 2000);
+        if (auth) {
+            console.log('🔐 Auth доступен');
+        }
+    }, 1000);
 }
 
 // Настройка обработчиков событий
 function setupEventListeners() {
-    // Авторизация
+    // ===== АВТОРИЗАЦИЯ =====
     authBtn.addEventListener('click', showAuthModal);
     
     loginSubmitBtn.addEventListener('click', async () => {
@@ -34,8 +60,8 @@ function setupEventListeners() {
         }
         
         try {
-            loginSubmitBtn.textContent = '⏳...';
-            loginSubmitBtn.disabled = true;
+            setButtonsLoading(true);
+            loginSubmitBtn.textContent = '⏳ Подождите...';
             
             await loginWithEmail(email, password);
             
@@ -46,12 +72,20 @@ function setupEventListeners() {
         } catch (error) {
             showError(error.message);
         } finally {
+            setButtonsLoading(false);
             loginSubmitBtn.textContent = '📧 войти / регистрация';
-            loginSubmitBtn.disabled = false;
         }
     });
     
-    logoutBtn.addEventListener('click', logout);
+    logoutBtn.addEventListener('click', async () => {
+        try {
+            await logout();
+        } catch (error) {
+            showError('Ошибка выхода: ' + error.message);
+        }
+    });
+    
+    // ===== УПРАВЛЕНИЕ КОМНАТОЙ =====
     
     // Создание комнаты
     createRoomBtn.addEventListener('click', async () => {
@@ -61,62 +95,83 @@ function setupEventListeners() {
                 return;
             }
             
-            createRoomBtn.textContent = '⏳...';
-            createRoomBtn.disabled = true;
+            setButtonsLoading(true);
+            createRoomBtn.textContent = '⏳ Создание...';
             
             const roomId = await createRoom();
             currentRoomId = roomId;
             
+            console.log('✅ Комната создана:', roomId);
+            showSuccess('Комната создана! Код: ' + roomId);
+            
+            // Подписываемся на обновления комнаты
             subscribeToRoom(roomId, {
                 onUpdate: (data) => {
                     roomPlayers = data.players;
                     updateRoomUI(data);
                     
+                    // Инициализация P2P соединений
                     if (data.isHost) {
-                        const peerUids = data.players.map(p => p.uid).filter(uid => uid !== currentUser?.uid);
+                        const peerUids = data.players
+                            .map(p => p.uid)
+                            .filter(uid => uid !== currentUser?.uid);
+                        
                         if (peerUids.length > 0) {
+                            console.log('🎮 Инициализация как хост для', peerUids.length, 'пиров');
                             initAsHost(peerUids);
                         }
                     } else {
                         const host = data.players.find(p => p.uid === data.hostUid);
                         if (host && host.uid !== currentUser?.uid) {
+                            console.log('🎮 Инициализация как клиент для хоста', host.email);
                             initAsClient(host.uid);
                         }
                     }
                 },
+                
                 onRoomDeleted: () => {
+                    console.log('ℹ️ Комната удалена');
                     currentRoomId = null;
                     isHost = false;
                     updateRoomUI(null);
                     closeAllConnections();
+                    showError('Комната была удалена');
                 },
+                
                 onPlayerRemoved: () => {
+                    console.log('ℹ️ Вы удалены из комнаты');
                     currentRoomId = null;
                     isHost = false;
                     updateRoomUI(null);
                     closeAllConnections();
+                    showError('Вы были удалены из комнаты');
                 }
             });
             
-            showSuccess('Комната создана! Код: ' + roomId);
+            // Очищаем поле ввода кода
+            joinCodeInput.value = '';
+            
         } catch (error) {
             showError(error.message);
         } finally {
+            setButtonsLoading(false);
             createRoomBtn.textContent = '➕ создать';
-            createRoomBtn.disabled = false;
         }
     });
     
     // Присоединение к комнате
     joinRoomBtn.addEventListener('click', async () => {
         const code = joinCodeInput.value.trim().toUpperCase();
+        
         if (!code) {
             showError('Введите код комнаты');
+            joinCodeInput.focus();
             return;
         }
         
         if (code.length !== 6) {
-            showError('Код должен быть 6 символов');
+            showError('Код должен быть 6 символов (буквы и цифры)');
+            joinCodeInput.focus();
             return;
         }
         
@@ -126,51 +181,65 @@ function setupEventListeners() {
                 return;
             }
             
-            joinRoomBtn.textContent = '⏳...';
-            joinRoomBtn.disabled = true;
+            setButtonsLoading(true);
+            joinRoomBtn.textContent = '⏳ Подключение...';
             
             await joinRoom(code);
             currentRoomId = code;
             
+            console.log('✅ Присоединились к комнате:', code);
+            showSuccess('Присоединение выполнено!');
+            
+            // Подписываемся на обновления комнаты
             subscribeToRoom(code, {
                 onUpdate: (data) => {
                     roomPlayers = data.players;
                     updateRoomUI(data);
                     
                     if (data.isHost) {
-                        const peerUids = data.players.map(p => p.uid).filter(uid => uid !== currentUser?.uid);
+                        const peerUids = data.players
+                            .map(p => p.uid)
+                            .filter(uid => uid !== currentUser?.uid);
+                        
                         if (peerUids.length > 0) {
+                            console.log('🎮 Инициализация как хост для', peerUids.length, 'пиров');
                             initAsHost(peerUids);
                         }
                     } else {
                         const host = data.players.find(p => p.uid === data.hostUid);
                         if (host && host.uid !== currentUser?.uid) {
+                            console.log('🎮 Инициализация как клиент для хоста', host.email);
                             initAsClient(host.uid);
                         }
                     }
                 },
+                
                 onRoomDeleted: () => {
+                    console.log('ℹ️ Комната удалена');
                     currentRoomId = null;
                     updateRoomUI(null);
                     closeAllConnections();
+                    showError('Комната была удалена');
                 },
+                
                 onPlayerRemoved: () => {
+                    console.log('ℹ️ Вы удалены из комнаты');
                     currentRoomId = null;
                     updateRoomUI(null);
                     closeAllConnections();
+                    showError('Вы были удалены из комнаты');
                 }
             });
             
-            showSuccess('Присоединение выполнено!');
         } catch (error) {
             showError(error.message);
         } finally {
+            setButtonsLoading(false);
             joinRoomBtn.textContent = 'вход';
-            joinRoomBtn.disabled = false;
         }
     });
     
-    // Переключение активности комнаты
+    // Переключение активности комнаты (только для хоста)
     toggleRoomBtn.addEventListener('click', async () => {
         try {
             if (!currentRoomId) {
@@ -183,8 +252,11 @@ function setupEventListeners() {
                 return;
             }
             
+            const newState = !roomActive;
             await toggleRoomActive();
-            showSuccess(`Комната ${!roomActive ? 'выключена' : 'включена'}`);
+            
+            showSuccess(`Комната ${newState ? 'включена' : 'выключена'}`);
+            
         } catch (error) {
             showError(error.message);
         }
@@ -198,32 +270,87 @@ function setupEventListeners() {
                 return;
             }
             
+            setButtonsLoading(true);
+            leaveRoomBtn.textContent = '⏳ Выход...';
+            
             await leaveRoom();
+            
             currentRoomId = null;
             isHost = false;
             updateRoomUI(null);
             closeAllConnections();
+            
             showSuccess('Вы вышли из комнаты');
+            
         } catch (error) {
             showError('Ошибка при выходе: ' + error.message);
+        } finally {
+            setButtonsLoading(false);
+            leaveRoomBtn.textContent = '🚪 выйти';
         }
     });
     
-    // Копирование кода
-    copyCodeBtn.addEventListener('click', () => {
-        if (currentRoomId) {
-            navigator.clipboard?.writeText(currentRoomId)
-                .then(() => showSuccess('Код скопирован!'))
-                .catch(() => alert('Код: ' + currentRoomId));
+    // Обработка нажатия Enter в поле ввода кода
+    joinCodeInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            joinRoomBtn.click();
+        }
+    });
+    
+    // Обработка нажатия Enter в полях авторизации
+    loginEmail.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            loginPassword.focus();
+        }
+    });
+    
+    loginPassword.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            loginSubmitBtn.click();
+        }
+    });
+    
+    // Закрытие модалки по клику вне её
+    authModal.addEventListener('click', (e) => {
+        if (e.target === authModal) {
+            hideAuthModal();
         }
     });
 }
 
-// Пинг для отслеживания активности
+// Пинг для отслеживания активности (каждые 15 секунд)
 setInterval(() => {
     if (currentUser && currentRoomId) {
         db.ref(`rooms/${currentRoomId}/players/${currentUser.uid}/ping`)
             .set(Date.now())
-            .catch(() => {});
+            .then(() => console.log('📡 Пинг отправлен'))
+            .catch(err => console.log('⚠️ Пинг не удался:', err.message));
     }
 }, 15000);
+
+// Обработка ошибок сети
+window.addEventListener('online', () => {
+    console.log('🌐 Соединение восстановлено');
+    showSuccess('Соединение восстановлено');
+});
+
+window.addEventListener('offline', () => {
+    console.log('🌐 Соединение потеряно');
+    showError('Потеряно соединение с интернетом');
+});
+
+// Предотвращение случайного закрытия страницы
+window.addEventListener('beforeunload', (e) => {
+    if (currentRoomId && isHost) {
+        // Если хост закрывает страницу, предупреждаем
+        e.preventDefault();
+        e.returnValue = 'Вы хост комнаты. Выход может прервать игру других игроков.';
+    }
+});
+
+// Экспортируем функции
+window.main = {
+    initializeApp,
+    testConnection,
+    setupEventListeners
+};
