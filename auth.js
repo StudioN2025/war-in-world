@@ -23,11 +23,17 @@ auth.onAuthStateChanged(user => {
     currentUser = user;
     if (user) {
         console.log('✅ Пользователь авторизован:', user.email);
-        updateUserUI(user);
-        hideAuthModal();
+        if (typeof updateUserUI === 'function') {
+            updateUserUI(user);
+        }
+        if (typeof hideAuthModal === 'function') {
+            hideAuthModal();
+        }
     } else {
         console.log('ℹ️ Пользователь не авторизован');
-        updateUserUI(null);
+        if (typeof updateUserUI === 'function') {
+            updateUserUI(null);
+        }
     }
 });
 
@@ -74,7 +80,7 @@ async function loginWithEmail(email, password) {
 // Выход из системы
 async function logout() {
     try {
-        if (currentRoomId && currentUser) {
+        if (typeof currentRoomId !== 'undefined' && currentRoomId && currentUser) {
             await db.ref(`rooms/${currentRoomId}/players/${currentUser.uid}`).remove();
         }
         await auth.signOut();
@@ -82,7 +88,9 @@ async function logout() {
         window.location.reload();
     } catch (error) {
         console.error('❌ Ошибка выхода:', error);
-        showError('Ошибка выхода: ' + error.message);
+        if (typeof showError === 'function') {
+            showError('Ошибка выхода: ' + error.message);
+        }
     }
 }
 
@@ -94,7 +102,9 @@ function getCurrentUser() {
 // Проверка авторизации
 function requireAuth() {
     if (!currentUser) {
-        showAuthModal();
+        if (typeof showAuthModal === 'function') {
+            showAuthModal();
+        }
         throw new Error('Требуется авторизация');
     }
     return currentUser;
