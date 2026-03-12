@@ -21,16 +21,61 @@
             </div>
         </div>
 
+        <!-- Игровая информация -->
+        <div class="game-header">
+            <div class="date-display" id="currentDate">Январь 2024</div>
+            <div class="game-controls">
+                <button id="startGameBtn" class="game-btn">▶️ Старт</button>
+                <button id="stopGameBtn" class="game-btn">⏸️ Стоп</button>
+            </div>
+        </div>
+
+        <!-- Карта мира -->
         <div class="world-screen">
-            <div class="map-container">
-                <div class="empty-map-message">
-                    <span>🗺️</span>
-                    <div>пустая земля</div>
-                    <div class="map-subtitle">выбери провинцию</div>
+            <div class="map-container" id="mapContainer">
+                <!-- Провинции будут добавляться динамически -->
+            </div>
+        </div>
+
+        <!-- Информация о стране -->
+        <div class="country-panel" id="countryPanel">
+            <div class="country-header">
+                <h3 id="countryName">Страна</h3>
+                <span class="country-color" id="countryColor"></span>
+            </div>
+            <div class="country-stats">
+                <div class="stat-row">
+                    <span>👥 Население:</span>
+                    <span id="countryPopulation">0</span>
+                </div>
+                <div class="stat-row">
+                    <span>💰 Золото:</span>
+                    <span id="countryGold">0</span>
+                </div>
+                <div class="stat-row">
+                    <span>⚔️ Армия:</span>
+                    <span id="countryManpower">0</span>
+                </div>
+                <div class="stat-row">
+                    <span>🔬 Технология:</span>
+                    <span id="countryTech">1.0</span>
+                </div>
+                <div class="stat-row">
+                    <span>📊 Стабильность:</span>
+                    <span id="countryStability">80%</span>
+                </div>
+                <div class="stat-row">
+                    <span>💥 Усталость:</span>
+                    <span id="countryWarExhaustion">0%</span>
+                </div>
+                <div class="stat-row">
+                    <span>🏞️ Провинций:</span>
+                    <span id="provinceCount">0</span>
                 </div>
             </div>
         </div>
 
+        <!-- Панель комнаты -->
         <div class="room-panel" id="roomPanel">
             <div class="room-header">
                 <h3>⚡ КОМНАТА <span id="roomStatusIcon">⚫</span></h3>
@@ -71,10 +116,11 @@
         </div>
     </div>
 
-    <!-- Подключаем скрипты в правильном порядке -->
+    <!-- Подключаем скрипты -->
     <script src="firebase-config.js"></script>
-    <script src="ui.js"></script>        <!-- Сначала UI функции -->
-    <script src="auth.js"></script>      <!-- Потом auth который их использует -->
+    <script src="ui.js"></script>
+    <script src="auth.js"></script>
+    <script src="game.js"></script>
     <script src="room.js"></script>
     <script src="p2p.js"></script>
     <script src="main.js"></script>
