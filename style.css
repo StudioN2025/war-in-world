@@ -24,7 +24,6 @@ body {
     border: 1px solid #3e6d8c;
 }
 
-/* Шапка */
 .top-bar {
     background: #0d1f2c;
     padding: 16px 18px 10px;
@@ -58,6 +57,11 @@ body {
     font-size: 0.75rem;
     font-weight: 600;
     cursor: pointer;
+    transition: 0.2s;
+}
+
+.btn-small:hover {
+    background: #2e5f7a;
 }
 
 .user-email {
@@ -69,7 +73,6 @@ body {
     text-overflow: ellipsis;
 }
 
-/* Карта */
 .world-screen {
     background: #1a3f52;
     padding: 12px 10px 8px;
@@ -115,7 +118,6 @@ body {
     border-radius: 60px;
 }
 
-/* Панель комнаты */
 .room-panel {
     background: #0e2838;
     margin: 8px 12px 16px;
@@ -173,6 +175,11 @@ body {
     border-radius: 40px;
     font-weight: 600;
     cursor: pointer;
+    transition: 0.2s;
+}
+
+.copy-btn:hover {
+    background: #3f85a8;
 }
 
 .room-actions {
@@ -203,6 +210,12 @@ body {
     box-shadow: 0 1px 0 #134256;
 }
 
+.action-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
 .success-btn {
     background: #3f9e6b;
     box-shadow: 0 5px 0 #1a5f3a;
@@ -229,6 +242,12 @@ body {
     font-size: 1rem;
     text-align: center;
     border: 1px solid #4797bd;
+    outline: none;
+}
+
+.join-section input:focus {
+    border-color: #7ac7f5;
+    box-shadow: 0 0 0 2px rgba(122,199,245,0.3);
 }
 
 .join-section input::placeholder {
@@ -244,6 +263,16 @@ body {
     font-weight: 700;
     font-size: 1rem;
     cursor: pointer;
+    transition: 0.2s;
+}
+
+.btn-primary:hover {
+    background: #55afd9;
+}
+
+.btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 .player-list {
@@ -252,6 +281,8 @@ body {
     padding: 16px;
     margin-top: 18px;
     min-height: 80px;
+    max-height: 200px;
+    overflow-y: auto;
 }
 
 .player-item {
@@ -267,7 +298,6 @@ body {
     border-bottom: none;
 }
 
-/* Модальное окно */
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -306,10 +336,12 @@ body {
     border-radius: 60px;
     color: white;
     font-size: 1rem;
+    outline: none;
+    border: 1px solid transparent;
 }
 
 .modal-input:focus {
-    outline: 2px solid #7ac7f5;
+    border-color: #7ac7f5;
 }
 
 .modal-btn {
@@ -320,10 +352,24 @@ body {
     font-weight: 700;
     color: white;
     cursor: pointer;
+    transition: 0.2s;
+}
+
+.modal-btn:hover {
+    background: #4fa8d1;
+}
+
+.modal-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 .logout-btn {
     background: #6d3f3f;
+}
+
+.logout-btn:hover {
+    background: #8a4f4f;
 }
 
 .hidden {
@@ -332,4 +378,28 @@ body {
 
 #roomStatusIcon {
     font-size: 1.4rem;
+}
+
+.crown {
+    color: gold;
+    font-size: 1.2rem;
+    margin-left: 5px;
+}
+
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: #1d4b61;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #4797bd;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #5fa9cf;
 }
